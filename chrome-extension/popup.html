@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>YouTube Transcript Summarizer</h2>
+        </div>
+        
+        <div class="content">
+            <div class="url-section">
+                <label>🎥 Current Video</label>
+                <input type="text" id="videoUrl" placeholder="Navigate to a YouTube video" readonly>
+                <div class="video-info" id="videoInfo" style="display: none;">
+                    <span class="info-badge" id="languageBadge">🌐 Auto-detect</span>
+                    <span class="info-badge" id="methodBadge">🔧 Multi-API</span>
+                </div>
+            </div>
+            
+            <div class="options">
+                <div class="option-group">
+                    <label>🧠 AI Summary Length</label>
+                    <select id="summaryLength">
+                        <option value="100">⚡ Quick (100 words)</option>
+                        <option value="300" selected>📄 Standard (300 words)</option>
+                        <option value="500">📋 Detailed (500 words)</option>
+                        <option value="1000">📚 Comprehensive (1000 words)</option>
+                    </select>
+                </div>
+                
+                <div class="feature-badges">
+                    <span class="feature-badge">🤖 AI-Powered</span>
+                    <span class="feature-badge">🌍 Any Language</span>
+                    <span class="feature-badge">⚡ Multi-API</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button id="extractBtn" class="btn-primary">
+                    <span class="btn-icon">📝</span>
+                    Extract Transcript
+                </button>
+                <button id="summaryBtn" class="btn-success">
+                    <span class="btn-icon">🧠</span>
+                    Get Summary
+                </button>
+                <button id="clearBtn" class="btn-secondary">
+                    <span class="btn-icon">🗑️</span>
+                    Clear
+                </button>
+            </div>
+            
+            <div class="action-controls" id="actionControls" style="display: none;">
+                <button id="copyBtn" class="btn-action">
+                    <span class="btn-icon">📋</span>
+                    Copy
+                </button>
+                <button id="downloadBtn" class="btn-action">
+                    <span class="btn-icon">💾</span>
+                    Download
+                </button>
+                <button id="shareBtn" class="btn-action">
+                    <span class="btn-icon">🔗</span>
+                    Share
+                </button>
+            </div>
+            
+            <div class="download-options" id="downloadOptions" style="display: none;">
+                <div class="download-buttons">
+                    <button id="downloadTxt" class="btn-download">📄 TXT</button>
+                    <button id="downloadJson" class="btn-download">📊 JSON</button>
+                    <button id="downloadSrt" class="btn-download">🎬 SRT</button>
+                </div>
+            </div>
+            
+            <div id="status" class="status" style="display: none;"></div>
+            
+            <div class="powered-by">
+                <span>Powered by</span>
+                <div class="tech-badges">
+                    <span class="tech-badge">🤗 Hugging Face</span>
+                    <span class="tech-badge">🔤 Google Translate</span>
+                    <span class="tech-badge">⚡ Multi-API</span>
+                </div>
+            </div>
+            
+            <div id="result" class="result" style="display: none;"></div>
+            
+            <div id="shareModal" class="share-modal" style="display: none;">
+                <div class="share-content">
+                    <h4>🔗 Share Options</h4>
+                    <div class="share-buttons">
+                        <button id="copyUrlBtn" class="btn-share">📎 Copy URL</button>
+                        <button id="copyContentBtn" class="btn-share">📋 Copy Content</button>
+                    </div>
+                    <button id="closeShareBtn" class="btn-close">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

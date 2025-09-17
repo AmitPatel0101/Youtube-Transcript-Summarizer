@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 10px; margin: 10px 0; }
+        input, select, button { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #007cba; color: white; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .result { background: white; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .summary { background: #e8f4fd; padding: 15px; border-left: 4px solid #007cba; }
+        .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+        .share-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .share-link { padding: 10px; background: #f0f0f0; border-radius: 5px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; }
+        .error { color: red; background: #ffe6e6; padding: 10px; border-radius: 5px; }
+        .success { color: green; background: #e6ffe6; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🎥 YouTube Transcript Tool</h1>
+    
+    <div class="container">
+        <h3>Get Transcript</h3>
+        <input type="text" id="videoId" placeholder="Enter YouTube Video ID" style="width: 300px;">
+        <label>
+            <input type="checkbox" id="includeSummary"> Include Summary
+        </label>
+        <label>
+            Summary Words: <input type="number" id="summaryWords" value="100" min="50" max="500" style="width: 80px;">
+        </label>
+        <button onclick="getTranscript()">Get Transcript</button>
+    </div>
+
+    <div id="result" class="result" style="display: none;">
+        <div id="transcriptInfo"></div>
+        <div id="summarySection"></div>
+        
+        <div class="actions">
+            <button onclick="copyToClipboard()">📋 Copy All</button>
+            <button onclick="downloadTranscript('txt')">📄 Download TXT</button>
+            <button onclick="downloadTranscript('json')">📊 Download JSON</button>
+            <button onclick="downloadTranscript('srt')">🎬 Download SRT</button>
+            <button onclick="generateShareLinks()">🔗 Share</button>
+        </div>
+        
+        <div id="shareSection" style="display: none;">
+            <h4>Share Options</h4>
+            <div class="share-links" id="shareLinks"></div>
+        </div>
+        
+        <div id="transcriptText"></div>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        let currentTranscript = null;
+        let currentVideoId = null;
+
+        async function getTranscript() {
+            const videoId = document.getElementById('videoId').value.trim();
+            const includeSummary = document.getElementById('includeSummary').checked;
+            const summaryWords = document.getElementById('summaryWords').value;
+            
+            if (!videoId) {
+                showMessage('Please enter a video ID', 'error');
+                return;
+            }
+
+            currentVideoId = videoId;
+            showMessage('Getting transcript...', 'info');
+
+            try {
+                let url = `http://localhost:5000/transcript/${videoId}`;
+                if (includeSummary) {
+                    url += `?summary=true&summary_words=${summaryWords}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentTranscript = data;
+                    displayTranscript(data);
+                    showMessage('Transcript loaded successfully!', 'success');
+                } else {
+                    showMessage(`Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Network error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayTranscript(data) {
+            document.getElementById('result').style.display = 'block';
+            
+            // Display info
+            document.getElementById('transcriptInfo').innerHTML = `
+                <h3>📹 Video: ${data.video_id}</h3>
+                <p><strong>Language:</strong> ${data.language}</p>
+                <p><strong>Method:</strong> ${data.method}</p>
+                <p><strong>Word Count:</strong> ${data.word_count}</p>
+            `;
+
+            // Display summary if available
+            if (data.summary) {
+                document.getElementById('summarySection').innerHTML = `
+                    <div class="summary">
+                        <h4>📝 Summary (${data.summary.summary_words}/${data.summary.target_words} words)</h4>
+                        <p>${data.summary.text}</p>
+                        <small>Method: ${data.summary.method} | Compression: ${data.summary.compression}</small>
+                    </div>
+                `;
+            } else {
+                document.getElementById('summarySection').innerHTML = '';
+            }
+
+            // Display transcript
+            document.getElementById('transcriptText').innerHTML = `
+                <h4>📄 Full Transcript</h4>
+                <textarea readonly>${data.transcript}</textarea>
+            `;
+        }
+
+        async function copyToClipboard() {
+            if (!currentTranscript) return;
+
+            let content = `YouTube Transcript - Video ID: ${currentTranscript.video_id}\n`;
+            content += `Language: ${currentTranscript.language}\n`;
+            content += `Words: ${currentTranscript.word_count}\n\n`;
+
+            if (currentTranscript.summary) {
+                content += `SUMMARY:\n${currentTranscript.summary.text}\n\n`;
+            }
+
+            content += `TRANSCRIPT:\n${currentTranscript.transcript}`;
+
+            try {
+                await navigator.clipboard.writeText(content);
+                showMessage('Copied to clipboard!', 'success');
+            } catch (error) {
+                showMessage('Failed to copy to clipboard', 'error');
+            }
+        }
+
+        async function downloadTranscript(format) {
+            if (!currentVideoId) return;
+
+            try {
+                const includeSummary = document.getElementById('includeSummary').checked;
+                const summaryWords = document.getElementById('summaryWords').value;
+                
+                let url = `http://localhost:5000/download/${currentVideoId}/${format}`;
+                if (includeSummary) {
+                    url += `?summary=true&summary_words=${summaryWords}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Decode base64 content and trigger download
+                    const content = atob(data.download.content);
+                    const blob = new Blob([content], { type: data.download.mime_type });
+                    const url_obj = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url_obj;
+                    a.download = data.download.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url_obj);
+
+                    showMessage(`Downloaded ${data.download.filename}`, 'success');
+                } else {
+                    showMessage(`Download failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Download error: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateShareLinks() {
+            if (!currentVideoId) return;
+
+            try {
+                const includeSummary = document.getElementById('includeSummary').checked;
+                const summaryWords = document.getElementById('summaryWords').value;
+                
+                let url = `http://localhost:5000/share/${currentVideoId}`;
+                if (includeSummary) {
+                    url += `?summary=true&summary_words=${summaryWords}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayShareLinks(data);
+                    document.getElementById('shareSection').style.display = 'block';
+                    showMessage('Share links generated!', 'success');
+                } else {
+                    showMessage(`Share generation failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`Share error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayShareLinks(data) {
+            const shareLinks = document.getElementById('shareLinks');
+            shareLinks.innerHTML = `
+                <div class="share-link">
+                    <strong>Direct URL:</strong><br>
+                    <input type="text" value="${data.share.url}" readonly style="width: 100%;">
+                    <button onclick="copyText('${data.share.url}')">Copy</button>
+                </div>
+                
+                <div class="share-link">
+                    <strong>Twitter:</strong><br>
+                    <textarea readonly style="height: 60px;">${data.social_media.twitter}</textarea>
+                    <button onclick="copyText('${data.social_media.twitter}')">Copy</button>
+                </div>
+                
+                <div class="share-link">
+                    <strong>Facebook:</strong><br>
+                    <textarea readonly style="height: 60px;">${data.social_media.facebook}</textarea>
+                    <button onclick="copyText('${data.social_media.facebook}')">Copy</button>
+                </div>
+                
+                <div class="share-link">
+                    <strong>LinkedIn:</strong><br>
+                    <textarea readonly style="height: 60px;">${data.social_media.linkedin}</textarea>
+                    <button onclick="copyText('${data.social_media.linkedin}')">Copy</button>
+                </div>
+                
+                <div class="share-link">
+                    <strong>Email Subject:</strong><br>
+                    <input type="text" value="${data.social_media.email_subject}" readonly style="width: 100%;">
+                    <button onclick="copyText('${data.social_media.email_subject}')">Copy</button>
+                </div>
+            `;
+        }
+
+        async function copyText(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showMessage('Copied!', 'success');
+            } catch (error) {
+                showMessage('Failed to copy', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
